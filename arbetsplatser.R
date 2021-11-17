@@ -25,10 +25,7 @@ invisible(gc())
 
 # libraries
 if (!require("pacman")) install.packages("pacman")
-pacman::p_load(tidyverse, sf, sp, mapview)
-
-
-#library(rgeos)
+pacman::p_load(tidyverse, sf, sp, mapview, leaflet, htmlwidgets)
 
 
 # avoid scientific notation
@@ -40,7 +37,7 @@ dir.create(paste0(getwd(), "/output"))
 
 
 # get paths
-api_fil <- read_file(paste0(api, "api"))
+api_fil <- read_file(paste0("Z:/api"))
 scb_data = gsub('^.*scb_data: \\s*|\\s*\r.*$', "", api_fil)
 
 output = paste0(getwd(),"/output/")
@@ -79,9 +76,6 @@ grid_size = scb %>%
   summarise(min = min(cell)) %>%
   mutate(min = as.numeric(min)) %>%
   pull()
-
-
-
 
 
 
@@ -164,12 +158,36 @@ mapview(spdf1)
 mapview(arbetsplatser, zcol = "dagbef")
 
 
+### Leaflet map
+bins <- c(100, 500, 1500, 3000, 100000)
+pal <- colorBin("YlOrRd", domain = arbetsplatser$dagbef, bins = bins)
+
+
+karta = arbetsplatser %>% 
+  st_transform(4326) %>% 
+  leaflet() %>%
+  addTiles() %>%
+  addPolygons(fillColor = ~ pal(dagbef),
+              fillOpacity = 1,
+              popup = ~paste(dagbef, "arbetsplatser finns i området")) %>%   
+  addLegend(pal = pal, 
+            values = ~dagbef, 
+            # labFormat = labelFormat(suffix = "%",
+            #                         transform = function(x) 100 * x),
+            title = "Arbetsplatser", position = "bottomright")
+
+karta
+
 
 #---------------------------------------------------------------------------------------------------
 # Save results
 #---------------------------------------------------------------------------------------------------
 
 st_write(arbetsplatser, paste0(output, "arbetsplatser2019.shp"))
+
+
+saveWidget(karta, file=paste0(output, "karta.html"), selfcontained = FALSE)
+
 
 
 
